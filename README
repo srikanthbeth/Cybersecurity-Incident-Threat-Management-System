@@ -1,9 +1,5 @@
 # Cybersecurity Incident & Threat Management System
 
-**Author:** Srikanth Bethamcharla  
-**Project Status:** Completed  
-**Test Results:** 361 Passed
-
 ## 1. Project Overview
 
 The Cybersecurity Incident & Threat Management System is a backend application developed using FastAPI and PostgreSQL to help organizations manage security incidents, monitor alerts, track vulnerabilities, investigate suspicious activities, assign security analysts, assess risks, and generate security reports.
