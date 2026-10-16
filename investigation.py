@@ -1,85 +1,121 @@
-from datetime import datetime, timezone
+from datetime import datetime
+from enum import Enum
 
-from sqlalchemy import DateTime, ForeignKey, Index, Integer, String, Text
-from sqlalchemy.orm import Mapped, mapped_column, relationship
-
-from database import Base
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 
-def utc_now():
-    return datetime.now(timezone.utc)
+class InvestigationStatus(str, Enum):
+    OPEN = "OPEN"
+    IN_PROGRESS = "IN_PROGRESS"
+    COMPLETED = "COMPLETED"
+    CANCELLED = "CANCELLED"
 
 
-class Investigation(Base):
-    __tablename__ = "investigations"
-    __table_args__ = (
-        Index("ix_investigations_status_priority", "status", "priority"),
-    )
+class InvestigationPriority(str, Enum):
+    LOW = "LOW"
+    MEDIUM = "MEDIUM"
+    HIGH = "HIGH"
+    CRITICAL = "CRITICAL"
 
-    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
-    investigation_number: Mapped[str] = mapped_column(
-        String(40), unique=True, nullable=False, index=True
-    )
-    title: Mapped[str] = mapped_column(String(200), nullable=False)
-    description: Mapped[str] = mapped_column(Text, nullable=False)
-    status: Mapped[str] = mapped_column(
-        String(30), default="OPEN", nullable=False, index=True
-    )
-    priority: Mapped[str] = mapped_column(
-        String(20), default="MEDIUM", nullable=False
-    )
 
-    incident_id: Mapped[int | None] = mapped_column(
-        ForeignKey("incidents.id", ondelete="SET NULL"),
-        nullable=True,
-        index=True,
-    )
-    alert_id: Mapped[int | None] = mapped_column(
-        ForeignKey("security_alerts.id", ondelete="SET NULL"),
-        nullable=True,
-        index=True,
-    )
-    asset_id: Mapped[int | None] = mapped_column(
-        ForeignKey("assets.id", ondelete="SET NULL"),
-        nullable=True,
-        index=True,
-    )
-    assigned_to: Mapped[int | None] = mapped_column(
-        ForeignKey("users.id", ondelete="SET NULL"),
-        nullable=True,
-        index=True,
-    )
-    created_by: Mapped[int] = mapped_column(
-        ForeignKey("users.id", ondelete="RESTRICT"), nullable=False
-    )
-    completed_at: Mapped[datetime | None] = mapped_column(
-        DateTime(timezone=True), nullable=True
-    )
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), default=utc_now, nullable=False
-    )
-    updated_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True),
-        default=utc_now,
-        onupdate=utc_now,
-        nullable=False,
-    )
+class EvidenceType(str, Enum):
+    LOG = "LOG"
+    SCREENSHOT = "SCREENSHOT"
+    DOCUMENT = "DOCUMENT"
+    NETWORK_CAPTURE = "NETWORK_CAPTURE"
+    HASH = "HASH"
+    URL = "URL"
+    OTHER = "OTHER"
 
-    notes = relationship(
-        "InvestigationNote",
-        back_populates="investigation",
-        cascade="all, delete-orphan",
-        order_by="InvestigationNote.created_at",
-    )
-    evidence_items = relationship(
-        "InvestigationEvidence",
-        back_populates="investigation",
-        cascade="all, delete-orphan",
-        order_by="InvestigationEvidence.created_at",
-    )
-    history = relationship(
-        "InvestigationHistory",
-        back_populates="investigation",
-        cascade="all, delete-orphan",
-        order_by="InvestigationHistory.created_at",
-    )
+
+class InvestigationCreate(BaseModel):
+    title: str = Field(min_length=3, max_length=200)
+    description: str = Field(min_length=5, max_length=10000)
+    priority: InvestigationPriority = InvestigationPriority.MEDIUM
+    incident_id: int | None = Field(default=None, gt=0)
+    alert_id: int | None = Field(default=None, gt=0)
+    asset_id: int | None = Field(default=None, gt=0)
+    assigned_to: int | None = Field(default=None, gt=0)
+
+    @model_validator(mode="after")
+    def require_related_record(self):
+        if not any(
+            value is not None
+            for value in (self.incident_id, self.alert_id, self.asset_id)
+        ):
+            raise ValueError(
+                "At least one of incident_id, alert_id, or asset_id is required"
+            )
+        return self
+
+
+class InvestigationUpdate(BaseModel):
+    title: str | None = Field(default=None, min_length=3, max_length=200)
+    description: str | None = Field(default=None, min_length=5, max_length=10000)
+    priority: InvestigationPriority | None = None
+    status: InvestigationStatus | None = None
+    assigned_to: int | None = Field(default=None, gt=0)
+
+
+class InvestigationNoteCreate(BaseModel):
+    note: str = Field(min_length=2, max_length=10000)
+
+
+class InvestigationNoteResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    investigation_id: int
+    author_id: int
+    note: str
+    created_at: datetime
+
+
+class EvidenceCreate(BaseModel):
+    reference: str = Field(min_length=1, max_length=1000)
+    evidence_type: EvidenceType
+    description: str = Field(min_length=3, max_length=5000)
+    is_sensitive: bool = True
+
+
+class EvidenceResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    investigation_id: int
+    reference: str
+    evidence_type: str
+    description: str
+    is_sensitive: bool
+    recorded_by: int
+    created_at: datetime
+
+
+class InvestigationHistoryResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    investigation_id: int
+    actor_id: int
+    action: str
+    details: str | None
+    created_at: datetime
+
+
+class InvestigationResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    investigation_number: str
+    title: str
+    description: str
+    status: str
+    priority: str
+    incident_id: int | None
+    alert_id: int | None
+    asset_id: int | None
+    assigned_to: int | None
+    created_by: int
+    completed_at: datetime | None
+    created_at: datetime
+    updated_at: datetime

@@ -1,123 +1,68 @@
 
 from datetime import date
+from typing import Any
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
-from sqlalchemy.orm import Session
-
-from core.dependencies import get_current_user
-from database import get_db
-from schemas.dashboard import (
-    AnalystWorkloadResponse,
-    DashboardSummaryResponse,
-    IncidentTrendsResponse,
-    RemediationDashboardResponse,
-    VulnerabilityDashboardResponse,
-)
-from services.dashboard_service import DashboardService
+from pydantic import BaseModel, ConfigDict
 
 
-router = APIRouter(
-    prefix="/api/v1/dashboard",
-    tags=["Security Dashboard"],
-)
+class DashboardSummaryResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    total_incidents: int
+    open_incidents: int
+    resolved_incidents: int
+    critical_alerts: int
+    vulnerabilities_by_severity: dict[str, int]
+    high_risk_assets: int
+    average_response_time_hours: float | None
+    response_time_basis: str
+    sla_compliance_percentage: float | None
+    sla_eligible_incidents: int
+    sla_note: str
+    overdue_remediation_tasks: int
 
 
-DASHBOARD_ROLES = {
-    "SUPER_ADMIN",
-    "SECURITY_MANAGER",
-    "SECURITY_ANALYST",
-    "INCIDENT_RESPONDER",
-    "IT_ADMINISTRATOR",
-    "AUDITOR",
-    "VIEWER",
-}
+class VulnerabilityDashboardResponse(BaseModel):
+    total: int
+    by_severity: dict[str, int]
 
 
-def normalize_role(user) -> str:
-    return (
-        str(user.role)
-        .upper()
-        .split(".")[-1]
-        .replace(" ", "_")
-    )
+class AnalystWorkloadItem(BaseModel):
+    analyst_id: int
+    analyst_name: str
+    role: str
+    active_incidents: int
+    active_remediation_tasks: int
+    total_active_work: int
 
 
-def require_dashboard_access(user) -> None:
-    if normalize_role(user) not in DASHBOARD_ROLES:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="You do not have permission to view the dashboard",
-        )
+class AnalystWorkloadResponse(BaseModel):
+    items: list[AnalystWorkloadItem]
+    total_analysts: int
 
 
-@router.get(
-    "/summary",
-    response_model=DashboardSummaryResponse,
-)
-def dashboard_summary(
-    db: Session = Depends(get_db),
-    current_user=Depends(get_current_user),
-):
-    require_dashboard_access(current_user)
-    return DashboardService.get_summary(db)
+class IncidentTrendItem(BaseModel):
+    date: date
+    count: int
 
 
-@router.get(
-    "/vulnerabilities",
-    response_model=VulnerabilityDashboardResponse,
-)
-def dashboard_vulnerabilities(
-    db: Session = Depends(get_db),
-    current_user=Depends(get_current_user),
-):
-    require_dashboard_access(current_user)
-    return DashboardService.get_vulnerabilities(db)
+class IncidentTrendsResponse(BaseModel):
+    start_date: date
+    end_date: date
+    total_incidents: int
+    items: list[IncidentTrendItem]
 
 
-@router.get(
-    "/analyst-workload",
-    response_model=AnalystWorkloadResponse,
-)
-def dashboard_analyst_workload(
-    db: Session = Depends(get_db),
-    current_user=Depends(get_current_user),
-):
-    require_dashboard_access(current_user)
-    return DashboardService.get_analyst_workload(db)
+class RemediationDashboardResponse(BaseModel):
+    total_tasks: int
+    overdue_tasks: int
+    overdue_by_priority: dict[str, int]
+    overdue_by_status: dict[str, int]
 
 
-@router.get(
-    "/incident-trends",
-    response_model=IncidentTrendsResponse,
-)
-def dashboard_incident_trends(
-    start_date: date | None = Query(default=None),
-    end_date: date | None = Query(default=None),
-    db: Session = Depends(get_db),
-    current_user=Depends(get_current_user),
-):
-    require_dashboard_access(current_user)
-
-    try:
-        return DashboardService.get_incident_trends(
-            db,
-            start_date=start_date,
-            end_date=end_date,
-        )
-    except ValueError as exc:
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail=str(exc),
-        ) from exc
+class DashboardErrorResponse(BaseModel):
+    detail: str
 
 
-@router.get(
-    "/remediation",
-    response_model=RemediationDashboardResponse,
-)
-def dashboard_remediation(
-    db: Session = Depends(get_db),
-    current_user=Depends(get_current_user),
-):
-    require_dashboard_access(current_user)
-    return DashboardService.get_remediation(db)
+class DashboardDebugResponse(BaseModel):
+    details: dict[str, Any]

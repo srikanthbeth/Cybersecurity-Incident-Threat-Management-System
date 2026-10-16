@@ -1,80 +1,56 @@
-from datetime import datetime, timezone
+from datetime import datetime
+from typing import Literal
 
-from sqlalchemy import (
-    DateTime,
-    Float,
-    ForeignKey,
-    Integer,
-    String,
-    Text,
-)
-from sqlalchemy.orm import Mapped, mapped_column
-
-from database import Base
+from pydantic import BaseModel, ConfigDict, Field
 
 
-def utc_now():
-    return datetime.now(timezone.utc)
+RiskLevel = Literal["LOW", "MEDIUM", "HIGH", "CRITICAL"]
+
+RiskStatus = Literal[
+    "OPEN",
+    "ACCEPTED",
+    "IN_REMEDIATION",
+    "REMEDIATED",
+]
 
 
-class RiskAssessment(Base):
-    __tablename__ = "risk_assessments"
+class RiskDecisionUpdate(BaseModel):
+    status: RiskStatus
+    details: str | None = Field(default=None, max_length=5000)
 
-    id: Mapped[int] = mapped_column(
-        Integer, primary_key=True, index=True
-    )
-    asset_id: Mapped[int] = mapped_column(
-        ForeignKey("assets.id", ondelete="RESTRICT"),
-        nullable=False,
-        index=True,
-    )
-    highest_risk_vulnerability_id: Mapped[int | None] = mapped_column(
-        ForeignKey("vulnerabilities.id", ondelete="SET NULL"),
-        nullable=True,
-        index=True,
-    )
-    assessed_by: Mapped[int] = mapped_column(
-        ForeignKey("users.id", ondelete="RESTRICT"),
-        nullable=False,
-    )
-    asset_criticality: Mapped[str] = mapped_column(
-        String(20), nullable=False
-    )
-    vulnerability_severity: Mapped[str | None] = mapped_column(
-        String(20), nullable=True
-    )
-    risk_score: Mapped[float] = mapped_column(
-        Float, nullable=False, default=0.0
-    )
-    risk_level: Mapped[str] = mapped_column(
-        String(20), nullable=False, default="LOW", index=True
-    )
-    status: Mapped[str] = mapped_column(
-        String(30), nullable=False, default="OPEN", index=True
-    )
-    assessment_details: Mapped[str] = mapped_column(
-        Text, nullable=False
-    )
-    accepted_reason: Mapped[str | None] = mapped_column(
-        Text, nullable=True
-    )
-    accepted_by: Mapped[int | None] = mapped_column(
-        ForeignKey("users.id", ondelete="RESTRICT"),
-        nullable=True,
-    )
-    accepted_at: Mapped[datetime | None] = mapped_column(
-        DateTime(timezone=True), nullable=True
-    )
-    remediation_notes: Mapped[str | None] = mapped_column(
-        Text, nullable=True
-    )
-    remediated_by: Mapped[int | None] = mapped_column(
-        ForeignKey("users.id", ondelete="RESTRICT"),
-        nullable=True,
-    )
-    remediated_at: Mapped[datetime | None] = mapped_column(
-        DateTime(timezone=True), nullable=True
-    )
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), default=utc_now, nullable=False
-    )
+
+class RiskAssessmentResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    asset_id: int
+    highest_risk_vulnerability_id: int | None
+    assessed_by: int
+    asset_criticality: str
+    vulnerability_severity: str | None
+    risk_score: float
+    risk_level: str
+    status: str
+    assessment_details: str
+    accepted_reason: str | None
+    accepted_by: int | None
+    accepted_at: datetime | None
+    remediation_notes: str | None
+    remediated_by: int | None
+    remediated_at: datetime | None
+    created_at: datetime
+
+
+class RiskAssessmentHistoryResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    assessment_id: int
+    actor_id: int
+    action: str
+    previous_score: float | None
+    new_score: float | None
+    previous_level: str | None
+    new_level: str | None
+    details: str | None
+    created_at: datetime

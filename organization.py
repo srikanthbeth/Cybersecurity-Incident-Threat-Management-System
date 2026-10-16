@@ -1,38 +1,35 @@
 
-from datetime import datetime, timezone
+from datetime import datetime
 
-from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, String, Text
-from sqlalchemy.orm import Mapped, mapped_column, relationship
-
-from database import Base
+from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
 
-def utc_now():
-    return datetime.now(timezone.utc)
+class OrganizationCreate(BaseModel):
+    name: str = Field(min_length=2, max_length=150)
+    code: str = Field(min_length=2, max_length=50, pattern=r"^[A-Za-z0-9_-]+$")
+    description: str | None = Field(default=None, max_length=5000)
+    industry: str | None = Field(default=None, max_length=100)
+    contact_email: EmailStr | None = None
 
 
-class Organization(Base):
-    __tablename__ = "organizations"
+class OrganizationUpdate(BaseModel):
+    name: str | None = Field(default=None, min_length=2, max_length=150)
+    description: str | None = Field(default=None, max_length=5000)
+    industry: str | None = Field(default=None, max_length=100)
+    contact_email: EmailStr | None = None
+    is_active: bool | None = None
 
-    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
-    name: Mapped[str] = mapped_column(String(150), nullable=False, index=True)
-    code: Mapped[str] = mapped_column(String(50), unique=True, nullable=False, index=True)
-    description: Mapped[str | None] = mapped_column(Text, nullable=True)
-    industry: Mapped[str | None] = mapped_column(String(100), nullable=True)
-    contact_email: Mapped[str | None] = mapped_column(String(255), nullable=True)
-    is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
-    created_by: Mapped[int | None] = mapped_column(
-        ForeignKey("users.id", ondelete="SET NULL"), nullable=True
-    )
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), default=utc_now, nullable=False
-    )
-    updated_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), default=utc_now, onupdate=utc_now, nullable=False
-    )
 
-    assets = relationship(
-        "Asset",
-        back_populates="organization",
-        cascade="save-update, merge",
-    )
+class OrganizationResponse(BaseModel):
+    id: int
+    name: str
+    code: str
+    description: str | None
+    industry: str | None
+    contact_email: str | None
+    is_active: bool
+    created_by: int | None
+    created_at: datetime
+    updated_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)

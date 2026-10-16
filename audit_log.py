@@ -1,93 +1,47 @@
-
 from datetime import datetime
+from typing import Any
 
-from sqlalchemy import (
-    DateTime,
-    ForeignKey,
-    Index,
-    Integer,
-    JSON,
-    String,
-    Text,
-    func,
-)
-from sqlalchemy.orm import Mapped, mapped_column
-
-from database import Base
+from pydantic import BaseModel, ConfigDict, Field
 
 
-class AuditLog(Base):
-    __tablename__ = "audit_logs"
+class AuditLogBase(BaseModel):
+    action: str = Field(min_length=1, max_length=100)
+    entity_type: str = Field(min_length=1, max_length=100)
+    entity_id: str | None = Field(default=None, max_length=100)
+    previous_value: dict[str, Any] | list[Any] | None = None
+    new_value: dict[str, Any] | list[Any] | None = None
+    ip_address: str | None = Field(default=None, max_length=45)
+    user_agent: str | None = None
+    request_id: str | None = Field(default=None, max_length=100)
 
-    __table_args__ = (
-    Index("ix_audit_logs_entity", "entity_type", "entity_id"),
-)
 
-    id: Mapped[int] = mapped_column(
-        Integer,
-        primary_key=True,
-        index=True,
-    )
+class AuditLogCreate(AuditLogBase):
+    """Input schema for creating an audit event internally."""
+    user_id: int | None = None
 
-    user_id: Mapped[int | None] = mapped_column(
-        ForeignKey("users.id", ondelete="SET NULL"),
-        nullable=True,
-    )
 
-    action: Mapped[str] = mapped_column(
-        String(100),
-        nullable=False,
-        index=True,
-    )
+class AuditLogResponse(AuditLogBase):
+    """Audit log returned by the API."""
+    model_config = ConfigDict(from_attributes=True)
 
-    entity_type: Mapped[str] = mapped_column(
-        String(100),
-        nullable=False,
-        index=True,
-    )
+    id: int
+    user_id: int | None = None
+    previous_hash: str | None = None
+    record_hash: str
+    created_at: datetime
 
-    entity_id: Mapped[str | None] = mapped_column(
-        String(100),
-        nullable=True,
-    )
 
-    previous_value: Mapped[dict | list | None] = mapped_column(
-        JSON,
-        nullable=True,
-    )
+class AuditLogListResponse(BaseModel):
+    """Paginated audit log results."""
+    items: list[AuditLogResponse]
+    total: int
+    limit: int
+    offset: int
 
-    new_value: Mapped[dict | list | None] = mapped_column(
-        JSON,
-        nullable=True,
-    )
 
-    ip_address: Mapped[str | None] = mapped_column(
-        String(45),
-        nullable=True,
-    )
-
-    user_agent: Mapped[str | None] = mapped_column(
-        Text,
-        nullable=True,
-    )
-
-    request_id: Mapped[str | None] = mapped_column(
-        String(100),
-        nullable=True,
-    )
-
-    previous_hash: Mapped[str | None] = mapped_column(
-        String(64),
-        nullable=True,
-    )
-
-    record_hash: Mapped[str] = mapped_column(
-        String(64),
-        nullable=False,
-    )
-
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True),
-        nullable=False,
-        server_default=func.now(),
-    )
+class AuditLogVerifyResponse(BaseModel):
+    """Result of audit hash-chain verification."""
+    valid: bool
+    checked_records: int
+    first_invalid_record_id: int | None = None
+    message: str

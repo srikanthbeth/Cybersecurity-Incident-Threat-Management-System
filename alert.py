@@ -1,88 +1,98 @@
 
-from datetime import datetime, timezone
+from datetime import datetime
+from enum import Enum
 
-from sqlalchemy import (
-    DateTime,
-    ForeignKey,
-    Index,
-    Integer,
-    String,
-    Text,
-    UniqueConstraint,
-)
-from sqlalchemy.orm import Mapped, mapped_column
-
-from database import Base
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 
-def utc_now():
-    return datetime.now(timezone.utc)
+class AlertSeverity(str, Enum):
+    LOW = "LOW"
+    MEDIUM = "MEDIUM"
+    HIGH = "HIGH"
+    CRITICAL = "CRITICAL"
 
 
-class Alert(Base):
-    __tablename__ = "security_alerts"
-    __table_args__ = (
-        UniqueConstraint(
-            "source",
-            "external_alert_id",
-            name="uq_security_alert_source_external_id",
-        ),
-        Index("ix_security_alerts_status_severity", "status", "severity"),
-    )
+class AlertStatus(str, Enum):
+    NEW = "NEW"
+    ACKNOWLEDGED = "ACKNOWLEDGED"
+    INVESTIGATING = "INVESTIGATING"
+    RESOLVED = "RESOLVED"
+    FALSE_POSITIVE = "FALSE_POSITIVE"
 
-    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
 
-    external_alert_id: Mapped[str | None] = mapped_column(
-        String(150), nullable=True
-    )
-    source: Mapped[str] = mapped_column(
-        String(100), nullable=False, index=True
-    )
-    title: Mapped[str] = mapped_column(String(200), nullable=False, index=True)
-    description: Mapped[str | None] = mapped_column(Text, nullable=True)
+class AlertCategory(str, Enum):
+    MALWARE = "MALWARE"
+    PHISHING = "PHISHING"
+    UNAUTHORIZED_ACCESS = "UNAUTHORIZED_ACCESS"
+    NETWORK_INTRUSION = "NETWORK_INTRUSION"
+    DATA_EXFILTRATION = "DATA_EXFILTRATION"
+    VULNERABILITY = "VULNERABILITY"
+    OTHER = "OTHER"
 
-    category: Mapped[str] = mapped_column(
-        String(80), default="OTHER", nullable=False, index=True
-    )
-    severity: Mapped[str] = mapped_column(
-        String(20), default="MEDIUM", nullable=False, index=True
-    )
-    status: Mapped[str] = mapped_column(
-        String(30), default="NEW", nullable=False, index=True
-    )
 
-    organization_id: Mapped[int | None] = mapped_column(
-        ForeignKey("organizations.id", ondelete="SET NULL"),
-        nullable=True,
-        index=True,
-    )
-    asset_id: Mapped[int | None] = mapped_column(
-        ForeignKey("assets.id", ondelete="SET NULL"),
-        nullable=True,
-        index=True,
-    )
-    assigned_to: Mapped[int | None] = mapped_column(
-        ForeignKey("users.id", ondelete="SET NULL"),
-        nullable=True,
-        index=True,
-    )
-    created_by: Mapped[int | None] = mapped_column(
-        ForeignKey("users.id", ondelete="SET NULL"),
-        nullable=True,
-    )
+class AlertCreate(BaseModel):
+    external_alert_id: str | None = Field(default=None, min_length=1, max_length=150)
+    source: str = Field(min_length=2, max_length=100)
+    title: str = Field(min_length=3, max_length=200)
+    description: str | None = Field(default=None, max_length=10000)
+    category: AlertCategory = AlertCategory.OTHER
+    severity: AlertSeverity = AlertSeverity.MEDIUM
+    organization_id: int | None = Field(default=None, gt=0)
+    asset_id: int | None = Field(default=None, gt=0)
+    assigned_to: int | None = Field(default=None, gt=0)
+    detected_at: datetime | None = None
 
-    detected_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), default=utc_now, nullable=False, index=True
-    )
-    resolved_at: Mapped[datetime | None] = mapped_column(
-        DateTime(timezone=True), nullable=True
-    )
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), default=utc_now, nullable=False
-    )
-    updated_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True),
-        default=utc_now,
-        onupdate=utc_now,
-        nullable=False,
-    )
+    @model_validator(mode="after")
+    def normalize_fields(self):
+        self.source = self.source.strip()
+        self.title = self.title.strip()
+
+        if len(self.source) < 2:
+            raise ValueError("Source must contain at least 2 characters.")
+        if len(self.title) < 3:
+            raise ValueError("Title must contain at least 3 characters.")
+
+        if self.external_alert_id is not None:
+            self.external_alert_id = self.external_alert_id.strip()
+            if not self.external_alert_id:
+                raise ValueError("External alert ID cannot be blank.")
+
+        return self
+
+
+class AlertUpdate(BaseModel):
+    title: str | None = Field(default=None, min_length=3, max_length=200)
+    description: str | None = Field(default=None, max_length=10000)
+    category: AlertCategory | None = None
+    severity: AlertSeverity | None = None
+    status: AlertStatus | None = None
+    assigned_to: int | None = Field(default=None, gt=0)
+
+    @model_validator(mode="after")
+    def validate_title(self):
+        if self.title is not None:
+            self.title = self.title.strip()
+            if len(self.title) < 3:
+                raise ValueError("Title must contain at least 3 characters.")
+        return self
+
+
+class AlertResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    external_alert_id: str | None
+    source: str
+    title: str
+    description: str | None
+    category: str
+    severity: str
+    status: str
+    organization_id: int | None
+    asset_id: int | None
+    assigned_to: int | None
+    created_by: int | None
+    detected_at: datetime
+    resolved_at: datetime | None
+    created_at: datetime
+    updated_at: datetime
