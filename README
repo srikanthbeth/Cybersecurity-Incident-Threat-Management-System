@@ -1,1 +1,367 @@
-Generic single-database configuration.
+# Cybersecurity Incident & Threat Management System
+
+**Author:** Srikanth Bethamcharla  
+**Project Status:** Completed  
+**Test Results:** 361 Passed
+
+## 1. Project Overview
+
+The Cybersecurity Incident & Threat Management System is a backend application developed using FastAPI and PostgreSQL to help organizations manage security incidents, monitor alerts, track vulnerabilities, investigate suspicious activities, assign security analysts, assess risks, and generate security reports.
+
+The application implements authentication, role-based access control, database management, incident response workflows, remediation tracking, audit logging, dashboard APIs, advanced search, reporting, and integration testing.
+
+## 2. Technology Stack
+
+- Python 3.11+
+- FastAPI
+- Pydantic
+- SQLAlchemy
+- PostgreSQL
+- JWT Authentication
+- Password Hashing with Argon2
+- Alembic Database Migrations
+- Pytest
+- HTTPX
+- Swagger UI / OpenAPI
+- Docker and Docker Compose configuration
+
+## 3. User Roles
+
+The system supports role-based access control for security operations, including:
+
+- Super Admin
+- Security Manager
+- Security Analyst
+- IT Administrator
+- Auditor
+
+Additional application roles may be configured for incident response and read-only access.
+
+## 4. Project Modules — 20 Levels
+
+### Day 1 — Authentication and Organization Management
+
+**Level 1: Authentication**
+- User registration and login
+- JWT access and refresh tokens
+- Password hashing
+- Role-based access control
+- Password-reset workflow
+- Account activation and deactivation
+- Current-user endpoint
+- Logout and token revocation
+
+**Level 2: Organization and Asset Management**
+- Organization registration and management
+- Asset registration and ownership
+- Asset criticality and status tracking
+- Asset search and filtering
+- Organization-to-asset relationships
+
+**Level 3: User and Permission Management**
+- User management
+- Security team creation
+- Analyst assignment
+- Role and permission checks
+- Restricted access to sensitive operations
+
+### Day 2 — Security Alerts and Incident Management
+
+**Level 4: Security Alert Management**
+- Alert creation and updates
+- Alert source, category, and severity
+- Affected asset association
+- Status tracking and analyst assignment
+- Search, filtering, and pagination
+
+**Level 5: Incident Management**
+- Incident creation and lifecycle management
+- Incident severity and category
+- Analyst assignment
+- Investigation notes and history
+- Resolution details and closure approval
+
+**Level 6: Incident Correlation**
+- Correlation of related security alerts
+- Linking alerts to incidents
+- Identifying related security activity
+
+### Day 3 — Vulnerability and Risk Management
+
+**Level 7: Vulnerability Tracking**
+- Vulnerability registration
+- CVE and CVSS information
+- Asset association
+- Remediation recommendations
+- Vulnerability status and history
+
+**Level 8: Risk Assessment**
+- Risk score calculation
+- Asset criticality and vulnerability severity
+- Risk classification
+- Risk assessment history
+
+**Level 9: Remediation Workflow**
+- Remediation task creation
+- Team and analyst assignment
+- Priorities and deadlines
+- Evidence collection
+- Approval and rejection workflows
+- Overdue task tracking and history
+
+### Day 4 — Investigation and Response Management
+
+**Level 10: Investigation Management**
+- Investigation records
+- Incident, alert, and asset relationships
+- Investigation notes and evidence references
+- Ownership and investigation history
+
+**Level 11: Response Playbooks**
+- Reusable response workflows
+- Ordered response steps and checklists
+- Analyst task tracking
+- Approval for sensitive actions
+- Simulated response actions
+
+**Level 12: SLA Management**
+- Severity-based SLA targets
+- Acknowledgment and resolution deadlines
+- Response-time tracking
+- Breach identification and escalation
+
+### Day 5 — Audit Logs, Notifications, and Dashboard
+
+**Level 13: Audit Logging**
+- Tracking important system actions
+- User and entity references
+- Action timestamps
+- Administrative activity tracking
+- Incident and remediation history
+
+**Level 14: Notification System**
+- Security event notifications
+- Incident assignment notifications
+- Remediation and approval notifications
+- Notification status tracking
+
+**Level 15: Security Dashboard**
+- Incident and alert summaries
+- Vulnerability severity summaries
+- High-risk asset information
+- Remediation workload
+- Incident trend and performance reporting
+
+### Day 6 — Advanced Search, Reporting, and Optimization
+
+**Level 16: Advanced Search**
+- Incident and alert search
+- Severity and status filters
+- Reference-number search
+- Pagination and sorting
+- Combined search criteria
+
+**Level 17: Report Generation**
+- Daily incident summaries
+- Weekly security summaries
+- Vulnerability analysis
+- Asset risk reports
+- Analyst performance
+- SLA compliance
+- Remediation status
+- Incident resolution trends
+- CSV export
+
+**Level 18: Backend Optimization**
+- Database indexing
+- Pagination
+- Transaction handling
+- Query optimization
+- Centralized exception handling
+- Structured logging
+
+### Day 7 — Testing and Deployment Readiness
+
+**Level 19: Unit and Integration Testing**
+- Authentication tests
+- Role and permission tests
+- Incident and alert tests
+- Correlation tests
+- Risk and remediation tests
+- SLA and audit-related tests
+- Dashboard and reporting tests
+- Positive and negative test cases
+
+**Level 20: Deployment Readiness**
+- Environment-based configuration
+- Database migrations
+- API health checks
+- Docker configuration
+- Swagger documentation
+- Automated test execution
+- Project documentation
+
+## 5. Project Structure
+
+```text
+cybersecurity_incident_threat/
+├── core/
+├── models/
+├── repositories/
+├── schemas/
+├── services/
+├── routes/
+├── tests/
+│   └── integration/
+├── alembic/
+├── main.py
+├── database.py
+├── alembic.ini
+├── requirements.txt
+├── .env.example
+├── Dockerfile
+├── docker-compose.yml
+└── README.md
+```
+
+## 6. Installation and Setup
+
+### Prerequisites
+
+- Python 3.11 or newer
+- PostgreSQL
+- Git (optional)
+- Visual Studio Code (recommended)
+
+### Step 1: Open the Project
+
+```powershell
+cd C:\Users\cybersecurity_incident_threat
+```
+
+### Step 2: Activate the Virtual Environment
+
+```powershell
+.\venv\Scripts\Activate.ps1
+```
+
+### Step 3: Install Dependencies
+
+```powershell
+python -m pip install -r requirements.txt
+```
+
+### Step 4: Configure Environment Variables
+
+Configure the database URL and application security settings in your local `.env` file.
+
+Never commit real database passwords, JWT secrets, or other credentials to source control.
+
+### Step 5: Apply Database Migrations
+
+```powershell
+python -m alembic upgrade head
+```
+
+### Step 6: Start the Application
+
+```powershell
+python -m uvicorn main:app --reload
+```
+
+## 7. API Documentation
+
+After starting the application, access:
+
+- **Swagger UI:** http://127.0.0.1:8000/docs
+- **ReDoc:** http://127.0.0.1:8000/redoc
+- **OpenAPI JSON:** http://127.0.0.1:8000/openapi.json
+
+Swagger UI supports interactive testing of authentication, organization management, assets, alerts, incidents, vulnerabilities, remediation, search, and reporting endpoints.
+
+## 8. Testing
+
+Run all integration tests:
+
+```powershell
+python -m pytest tests/integration -v -s
+```
+
+Run the complete test directory, including unit tests if present:
+
+```powershell
+python -m pytest tests -v -s
+```
+
+Run an individual test module:
+
+```powershell
+python -m pytest tests/integration/test_auth.py -v -s
+```
+
+## 9. Test Results
+
+**Reported test result: 361 passed**
+
+The project test suite covers authentication, permissions, organization and asset management, security alerts, incident management, correlation, vulnerabilities, risk assessment, remediation, security teams, advanced search, and reporting.
+
+To verify the result, execute:
+
+```powershell
+python -m pytest tests -v -s  361 tests sucess
+
+```
+
+The final pytest summary should show `361 passed` with no failed or errored tests before this result is presented as independently verified.
+
+## 10. Mandatory End-to-End Demonstration
+
+The intended demonstration workflow is:
+
+1. Log in as an administrator.
+2. Register assets.
+3. Create security alerts.
+4. Correlate related alerts.
+5. Create an incident.
+6. Assign a security analyst.
+7. Identify vulnerabilities.
+8. Calculate risk.
+9. Create a remediation task.
+10. Complete the investigation.
+11. Track SLA deadlines.
+12. Resolve the incident.
+13. Generate notifications.
+14. View the security dashboard.
+15. Export reports.
+16. Verify audit and incident history.
+
+The organization creation workflow has been verified through Swagger with HTTP `201 Created`. Verify the remaining operations individually before claiming that the entire end-to-end workflow is complete.
+
+## 11. Security Considerations
+
+- Validate authentication tokens.
+- Enforce authorization on protected endpoints.
+- Hash passwords instead of storing plaintext credentials.
+- Validate incoming data using Pydantic schemas.
+- Keep secrets in environment variables.
+- Restrict access to administrative operations.
+- Track important incident and remediation actions.
+- Use simulated response actions for demonstrations.
+
+## 12. Future Enhancements
+
+- Redis caching
+- Celery background workers
+- WebSocket incident updates
+- Email notifications
+- Excel exports
+- API rate limiting
+- Prometheus metrics
+- CI/CD automation
+- Database backup and recovery procedures
+
+## 13. Conclusion
+
+The Cybersecurity Incident & Threat Management System provides a modular backend foundation for security operations. It combines authentication, access control, asset management, alert correlation, incident investigation, vulnerability tracking, risk assessment, remediation workflows, dashboards, and reporting.
+
+**Author:** Srikanth Bethamcharla
