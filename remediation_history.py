@@ -1,0 +1,40 @@
+
+from datetime import datetime, timezone
+
+from sqlalchemy import DateTime, ForeignKey, Integer, String, Text
+from sqlalchemy.orm import Mapped, mapped_column
+
+from database import Base
+
+
+def utc_now():
+    return datetime.now(timezone.utc)
+
+
+class RemediationHistory(Base):
+    __tablename__ = "remediation_history"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+
+    task_id: Mapped[int] = mapped_column(
+        ForeignKey("remediation_tasks.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    actor_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id", ondelete="RESTRICT"),
+        nullable=False,
+    )
+
+    action: Mapped[str] = mapped_column(String(40), nullable=False)
+    previous_status: Mapped[str | None] = mapped_column(
+        String(30), nullable=True
+    )
+    new_status: Mapped[str | None] = mapped_column(
+        String(30), nullable=True
+    )
+    details: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utc_now, nullable=False
+    )
